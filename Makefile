@@ -23,7 +23,7 @@ download-libraries: .venv ## Download the required libraries
 	@if [ -n "$(LOCAL_PYSQUARED)" ]; then \
 		$(UV) pip install $(LOCAL_PYSQUARED) --target lib --no-deps --upgrade --quiet; \
 	else \
-	$(UV) pip install git+https://github.com/hrfarmer/pysquared --target lib --no-deps --upgrade --quiet; \
+		$(UV) pip install git+https://github.com/proveskit/pysquared --target lib --no-deps --upgrade --quiet; \
 	fi
 		
 	@rm -rf lib/*.dist-info

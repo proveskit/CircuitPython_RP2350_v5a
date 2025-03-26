@@ -11,8 +11,5 @@ venv
 **/*.mpy
 
 # libs
-lib/rv3028*
-lib/adafruit*
-lib/asyncio*
-lib/neopixel.py
-lib/pysquared/
+/lib/*
+!/lib/requirements.txt
