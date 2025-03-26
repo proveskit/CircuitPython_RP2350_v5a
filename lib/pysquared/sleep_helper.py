@@ -4,8 +4,8 @@ import time
 import alarm
 import digitalio
 
-from lib.pysquared.logger import Logger
-from lib.pysquared.pysquared import Satellite
+from pysquared.logger import Logger
+from pysquared.pysquared import Satellite
 
 try:
     from typing import Literal

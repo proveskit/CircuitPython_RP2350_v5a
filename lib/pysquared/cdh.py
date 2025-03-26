@@ -1,11 +1,11 @@
 import random
 import time
 
-from lib.pysquared.config.config import Config
-from lib.pysquared.hardware.rfm9x.manager import RFM9xManager
-from lib.pysquared.hardware.rfm9x.modulation import RFM9xModulation
-from lib.pysquared.logger import Logger
-from lib.pysquared.pysquared import Satellite
+from pysquared.config.config import Config
+from pysquared.hardware.rfm9x.manager import RFM9xManager
+from pysquared.hardware.rfm9x.modulation import RFM9xModulation
+from pysquared.logger import Logger
+from pysquared.pysquared import Satellite
 
 try:
     from typing import Any, Union

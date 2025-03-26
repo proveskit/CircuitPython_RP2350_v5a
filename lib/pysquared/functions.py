@@ -9,13 +9,13 @@ import gc
 import random
 import time
 
-from lib.pysquared.config.config import Config
-from lib.pysquared.hardware.rfm9x.manager import RFM9xManager
-from lib.pysquared.logger import Logger
-from lib.pysquared.packet_manager import PacketManager
-from lib.pysquared.packet_sender import PacketSender
-from lib.pysquared.pysquared import Satellite
-from lib.pysquared.sleep_helper import SleepHelper
+from pysquared.config.config import Config
+from pysquared.hardware.rfm9x.manager import RFM9xManager
+from pysquared.logger import Logger
+from pysquared.packet_manager import PacketManager
+from pysquared.packet_sender import PacketSender
+from pysquared.pysquared import Satellite
+from pysquared.sleep_helper import SleepHelper
 
 try:
     from typing import List, OrderedDict, Union
@@ -188,7 +188,7 @@ class functions:
     def listen(self) -> bool:
         # need to instanciate cdh to feed it the config var
         # assigned from the Config object
-        from lib.pysquared.cdh import CommandDataHandler
+        from pysquared.cdh import CommandDataHandler
 
         cdh = CommandDataHandler(self.config, self.logger, self.radio_manager)
 
@@ -240,7 +240,7 @@ class functions:
         )
 
         try:
-            import lib.pysquared.Big_Data as Big_Data
+            import pysquared.Big_Data as Big_Data
 
             self.logger.debug(
                 "Free Memory Stat after importing Big_data library",
@@ -302,7 +302,7 @@ class functions:
         self.cubesat.rgb = (255, 255, 255)
 
         try:
-            import lib.pysquared.Big_Data as Big_Data
+            import pysquared.Big_Data as Big_Data
 
             a: Big_Data.AllFaces = Big_Data.AllFaces(self.cubesat.tca, self.logger)
         except Exception as e:
@@ -327,7 +327,7 @@ class functions:
 
         def do_detumble() -> None:
             try:
-                import lib.pysquared.detumble as detumble
+                import pysquared.detumble as detumble
 
                 for _ in range(3):
                     data = [self.cubesat.IMU.Gyroscope, self.cubesat.IMU.Magnetometer]

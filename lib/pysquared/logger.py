@@ -8,7 +8,7 @@ import time
 import traceback
 from collections import OrderedDict
 
-from lib.pysquared.nvm.counter import Counter
+from pysquared.nvm.counter import Counter
 
 
 def _color(msg, color="gray", fmt="normal"):

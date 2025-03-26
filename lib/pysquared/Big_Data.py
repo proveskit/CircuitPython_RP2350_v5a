@@ -1,7 +1,7 @@
 import gc
 
 import lib.adafruit_tca9548a as adafruit_tca9548a  # I2C Multiplexer
-from lib.pysquared.logger import Logger
+from pysquared.logger import Logger
 
 try:
     from typing import Union
