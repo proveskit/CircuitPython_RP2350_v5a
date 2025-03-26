@@ -25,7 +25,7 @@ download-libraries: .venv ## Download the required libraries
 	else \
 		$(UV) pip install git+https://github.com/proveskit/pysquared --target lib --no-deps --upgrade --quiet; \
 	fi
-		
+
 	@rm -rf lib/*.dist-info
 	@rm -rf lib/.lock
 
