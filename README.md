@@ -1,4 +1,4 @@
-# ProvesKit RP2040 v4 CircuitPython Flight Software
+# # ProvesKit RP2040 v5 CircuitPython Flight Software
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![CI](https://github.com/proveskit/CircuitPython_RP2040_v5/actions/workflows/ci.yaml/badge.svg)
