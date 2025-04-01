@@ -1,3 +1,6 @@
+PYSQUARED_VERSION ?= v2.0.0-alpha-25w14
+PYSQUARED ?= git+https://github.com/proveskit/pysquared@$(PYSQUARED_VERSION)
+
 .PHONY: all
 all: .venv download-libraries pre-commit-install help
 
@@ -12,9 +15,6 @@ help: ## Display this help.
 	@$(MAKE) uv
 	@$(UV) venv
 	@$(UV) pip install --requirement pyproject.toml
-
-PYSQUARED_VERSION ?= main
-PYSQUARED ?= git+https://github.com/proveskit/pysquared@$(PYSQUARED_VERSION)
 
 .PHONY: download-libraries
 download-libraries: uv .venv ## Download the required libraries

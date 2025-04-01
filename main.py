@@ -22,20 +22,20 @@ except ImportError:
 
 import lib.pysquared.functions as functions
 import lib.pysquared.nvm.register as register
-from lib.pysquared.satellite import Satellite
+from lib.pysquared.cdh import CommandDataHandler
 from lib.pysquared.config.config import Config
+from lib.pysquared.hardware.busio import _spi_init, initialize_i2c_bus
 from lib.pysquared.hardware.digitalio import initialize_pin
+from lib.pysquared.hardware.imu.manager.lsm6dsox import LSM6DSOXManager
+from lib.pysquared.hardware.magnetometer.manager.lis2mdl import LIS2MDLManager
 from lib.pysquared.hardware.radio.manager.sx126x import SX126xManager
 from lib.pysquared.logger import Logger
 from lib.pysquared.nvm.counter import Counter
 from lib.pysquared.nvm.flag import Flag
 from lib.pysquared.rtc.manager.microcontroller import MicrocontrollerManager
+from lib.pysquared.satellite import Satellite
 from lib.pysquared.sleep_helper import SleepHelper
 from lib.pysquared.watchdog import Watchdog
-from lib.pysquared.hardware.magnetometer.manager.lis2mdl import LIS2MDLManager
-from lib.pysquared.hardware.imu.manager.lsm6dsox import LSM6DSOXManager
-from lib.pysquared.hardware.busio import initialize_i2c_bus, _spi_init
-from lib.pysquared.cdh import CommandDataHandler
 from version import __version__
 
 rtc = MicrocontrollerManager()
@@ -97,10 +97,10 @@ try:
     cdh = CommandDataHandler(config, logger, radio)
 
     f = functions.functions(
-        c, 
-        logger, 
-        config, 
-        sleep_helper, 
+        c,
+        logger,
+        config,
+        sleep_helper,
         radio,
         magnetometer,
         imu,
