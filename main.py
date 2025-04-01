@@ -15,7 +15,8 @@ import digitalio
 import microcontroller
 
 try:
-    from board_definitions import proveskit_rp2040_v4 as board
+    # from board_definitions import proveskit_rp2040_v4 as board
+    raise ImportError
 except ImportError:
     import board
 
@@ -24,7 +25,7 @@ import lib.pysquared.nvm.register as register
 from lib.pysquared.satellite import Satellite
 from lib.pysquared.config.config import Config
 from lib.pysquared.hardware.digitalio import initialize_pin
-from lib.pysquared.hardware.radio.manager.rfm9x import RFM9xManager
+from lib.pysquared.hardware.radio.manager.sx126x import SX126xManager
 from lib.pysquared.logger import Logger
 from lib.pysquared.nvm.counter import Counter
 from lib.pysquared.nvm.flag import Flag
@@ -62,18 +63,20 @@ try:
     # TODO(nateinaction): fix spi init
     spi0 = _spi_init(
         logger,
-        board.SPI0_SCK,
-        board.SPI0_MOSI,
-        board.SPI0_MISO,
+        board.SPI1_SCK,
+        board.SPI1_MOSI,
+        board.SPI1_MISO,
     )
 
-    radio = RFM9xManager(
+    radio = SX126xManager(
         logger,
         config.radio,
         Flag(index=register.FLAG, bit_index=7, datastore=microcontroller.nvm),
         spi0,
-        initialize_pin(logger, board.SPI0_CS0, digitalio.Direction.OUTPUT, True),
-        initialize_pin(logger, board.RF1_RST, digitalio.Direction.OUTPUT, True),
+        initialize_pin(logger, board.SPI0_CS0, digitalio.Direction.OUTPUT),
+        initialize_pin(logger, board.RF2_IO0, digitalio.Direction.INPUT),
+        initialize_pin(logger, board.RF1_RST, digitalio.Direction.OUTPUT),
+        initialize_pin(logger, board.RF2_IO4, digitalio.Direction.INPUT),
     )
 
     i2c1 = initialize_i2c_bus(
