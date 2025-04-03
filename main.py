@@ -143,9 +143,9 @@ try:
         IMUData = []
         watchdog.pet()
         logger.info("IMU has baton")
-        IMUData = f.get_imu_data()
+        IMUData = imu.get_gyro_data()
         watchdog.pet()
-        f.send(IMUData)
+        radio.send(IMUData)
 
     def main():
         f.beacon()
