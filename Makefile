@@ -32,7 +32,7 @@ pre-commit-install: uv
 
 .PHONY: sync-time
 sync-time: uv ## Syncs the time from your computer to the PROVES Kit board
-	$(UVX) --from git+https://github.com/proveskit/sync-time@1.0.0 sync-time
+	$(UVX) --from git+https://github.com/proveskit/sync-time@1.0.1 sync-time
 
 .PHONY: fmt
 fmt: pre-commit-install ## Lint and format files
