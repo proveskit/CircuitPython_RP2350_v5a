@@ -53,9 +53,10 @@
 "battery_voltage": 5.2,
 "current_draw": 240.5,
 "reboot_time": 3600,
+"longest_allowable_sleep_time": 600,
 "turbo_clock": false,
 "radio": {
-    "license": "",
+    "license": "KK4PDM",
     "receiver_id": 250,
     "sender_id": 251,
     "start_time": 80000,
