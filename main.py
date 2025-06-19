@@ -10,7 +10,6 @@ Published:
 
 import gc
 import os
-import random
 import time
 
 import board
@@ -29,7 +28,7 @@ from lib.pysquared.hardware.magnetometer.manager.lis2mdl import LIS2MDLManager
 from lib.pysquared.hardware.radio.manager.rfm9x import RFM9xManager
 from lib.pysquared.hardware.radio.manager.sx1280 import SX1280Manager
 from lib.pysquared.hardware.radio.packetizer.packet_manager import PacketManager
-from lib.pysquared.logger import Logger
+from lib.pysquared.logger import Logger, LogLevel
 from lib.pysquared.nvm.counter import Counter
 from lib.pysquared.rtc.manager.microcontroller import MicrocontrollerManager
 from lib.pysquared.satellite import Satellite
@@ -47,6 +46,7 @@ error_count: Counter = Counter(index=Register.error_count)
 logger: Logger = Logger(
     error_counter=Counter(index=register.ERRORCNT),
     colorized=False,
+    log_level=LogLevel.INFO,
 )
 
 logger.info(
@@ -140,94 +140,25 @@ try:
         boot_count,
     )
 
-    def initial_boot():
-        watchdog.pet()
-        beacon.send()
-        watchdog.pet()
-        cdh.listen_for_commands(3)
-        watchdog.pet()
-
-    try:
-        logger.info(
+    def nominal_power_loop():
+        logger.debug(
             "FC Board Stats",
             bytes_remaining=gc.mem_free(),
         )
 
-        initial_boot()
-
-    except Exception as e:
-        logger.error("Error in Boot Sequence", e)
-
-    finally:
-        pass
-
-    def main():
-        uhf_radio.send(config.radio.license.encode("utf-8"))
+        uhf_packet_manager.send(config.radio.license.encode("utf-8"))
 
         beacon.send()
 
-        watchdog.pet()
-
-        cdh.listen_for_commands(3)
+        cdh.listen_for_commands(10)
 
         sleep_helper.safe_sleep(config.sleep_duration)
 
-        # TODO(nateinaction): replace me
-        # f.state_of_health()
-
-        cdh.listen_for_commands(3)
-
-        sleep_helper.safe_sleep(config.sleep_duration)
-
-        cdh.listen_for_commands(3)
-
-        sleep_helper.safe_sleep(config.sleep_duration)
-
-        cdh.listen_for_commands(3)
-
-        sleep_helper.safe_sleep(config.sleep_duration)
-
-        uhf_packet_manager.send(random.choice(config.jokes).encode("utf-8"))
-
-        watchdog.pet()
-
-        cdh.listen_for_commands(3)
-
-        sleep_helper.safe_sleep(config.sleep_duration)
-
-    # def critical_power_operations():
-    #     initial_boot()
-    #     watchdog.pet()
-
-    #     sleep_helper.long_hibernate()
-
-    # def minimum_power_operations():
-    #     initial_boot()
-    #     watchdog.pet()
-
-    #     sleep_helper.short_hibernate()
-
-    ######################### MAIN LOOP ##############################
     try:
+        logger.info("Entering main loop")
         while True:
-            # L0 automatic tasks no matter the battery level
-            # c.check_reboot()
-
-            # if c.power_mode == "critical":
-            #     critical_power_operations()
-
-            # elif c.power_mode == "minimum":
-            #     minimum_power_operations()
-
-            # elif c.power_mode == "normal":
-            #     main()
-
-            # elif c.power_mode == "maximum":
-            #     main()
-
-            # else:
-            #     f.listen()
-            main()
+            # TODO(nateinaction): Modify behavior based on power state
+            nominal_power_loop()
 
     except Exception as e:
         logger.critical("Critical in Main Loop", e)
