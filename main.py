@@ -16,7 +16,6 @@ import board
 import digitalio
 import microcontroller
 
-import lib.pysquared.nvm.register as register
 from lib.proveskit_rp2350_v5a.register import Register
 from lib.pysquared.beacon import Beacon
 from lib.pysquared.cdh import CommandDataHandler
@@ -28,10 +27,9 @@ from lib.pysquared.hardware.magnetometer.manager.lis2mdl import LIS2MDLManager
 from lib.pysquared.hardware.radio.manager.rfm9x import RFM9xManager
 from lib.pysquared.hardware.radio.manager.sx1280 import SX1280Manager
 from lib.pysquared.hardware.radio.packetizer.packet_manager import PacketManager
-from lib.pysquared.logger import Logger, LogLevel
+from lib.pysquared.logger import Logger
 from lib.pysquared.nvm.counter import Counter
 from lib.pysquared.rtc.manager.microcontroller import MicrocontrollerManager
-from lib.pysquared.satellite import Satellite
 from lib.pysquared.sleep_helper import SleepHelper
 from lib.pysquared.watchdog import Watchdog
 from version import __version__
@@ -44,9 +42,9 @@ rtc = MicrocontrollerManager()
 error_count: Counter = Counter(index=Register.error_count)
 
 logger: Logger = Logger(
-    error_counter=Counter(index=register.ERRORCNT),
+    error_counter=Counter(index=Register.error_count),
     colorized=False,
-    log_level=LogLevel.INFO,
+    # log_level=LogLevel.INFO,
 )
 
 logger.info(
@@ -102,9 +100,7 @@ try:
         100000,
     )
 
-    c = Satellite(logger, config)
-
-    sleep_helper = SleepHelper(logger, watchdog, config)
+    sleep_helper = SleepHelper(logger, config, watchdog)
 
     uhf_radio = RFM9xManager(
         logger,
