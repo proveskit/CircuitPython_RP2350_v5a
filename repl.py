@@ -247,10 +247,8 @@ def all_faces_on():
 ## Face Sensor Stuff ##
 
 # This is the TCA9548A I2C Multiplexer
-
 all_faces_on()
 mux_reset.value = True
-
 tca = TCA9548A(i2c1, address=int(0x77))
 
 
