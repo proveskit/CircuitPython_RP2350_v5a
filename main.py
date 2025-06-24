@@ -66,6 +66,10 @@ try:
     logger.debug("Initializing Config")
     config: Config = Config("config.json")
 
+    mux_reset = initialize_pin(
+        logger, board.MUX_RESET, digitalio.Direction.OUTPUT, False
+    )
+
     # TODO(nateinaction): fix spi init
     spi0 = _spi_init(
         logger,
@@ -89,8 +93,8 @@ try:
         initialize_pin(logger, board.RF2_RST, digitalio.Direction.OUTPUT, True),
         initialize_pin(logger, board.RF2_IO0, digitalio.Direction.OUTPUT, True),
         2.4,
-        initialize_pin(logger, board.RF2_TX_EN, digitalio.Direction.OUTPUT, True),
-        initialize_pin(logger, board.RF2_RX_EN, digitalio.Direction.OUTPUT, True),
+        initialize_pin(logger, board.RF2_TX_EN, digitalio.Direction.OUTPUT, False),
+        initialize_pin(logger, board.RF2_RX_EN, digitalio.Direction.OUTPUT, False),
     )
 
     i2c1 = initialize_i2c_bus(
