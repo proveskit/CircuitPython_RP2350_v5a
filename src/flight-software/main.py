@@ -41,7 +41,7 @@ rtc = MicrocontrollerManager()
 error_count: Counter = Counter(index=Register.error_count)
 
 logger: Logger = Logger(
-    error_counter=Counter(index=Register.error_count),
+    error_counter=error_count,
     colorized=False,
 )
 
