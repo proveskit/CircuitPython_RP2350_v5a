@@ -15,7 +15,6 @@ import time
 import board
 import digitalio
 import microcontroller
-
 from lib.proveskit_rp2350_v5a.register import Register
 from lib.pysquared.beacon import Beacon
 from lib.pysquared.cdh import CommandDataHandler
@@ -44,7 +43,6 @@ error_count: Counter = Counter(index=Register.error_count)
 logger: Logger = Logger(
     error_counter=Counter(index=Register.error_count),
     colorized=False,
-    # log_level=LogLevel.INFO,
 )
 
 logger.info(
