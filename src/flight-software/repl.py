@@ -25,6 +25,8 @@ except Exception:
 
 import os
 
+from version import __version__
+
 from lib.adafruit_drv2605 import DRV2605  ### This is Hacky V5a Devel Stuff###
 from lib.adafruit_mcp230xx.mcp23017 import (
     MCP23017,  ### This is Hacky V5a Devel Stuff###
@@ -49,7 +51,6 @@ from lib.pysquared.nvm.counter import Counter
 from lib.pysquared.rtc.manager.microcontroller import MicrocontrollerManager
 from lib.pysquared.sleep_helper import SleepHelper
 from lib.pysquared.watchdog import Watchdog
-from version import __version__
 
 rtc = MicrocontrollerManager()
 
@@ -283,21 +284,21 @@ class Face:
     def sensor_init(self, senlist, address) -> None:
         if "MCP" in senlist:
             try:
-                self.mcp: MCP9808 = MCP9808(self.tca[address], address=27)
+                self.mcp = MCP9808(self.tca[address], address=27)
                 self.sensors["MCP"] = True
             except Exception as e:
                 self.logger.error("Error Initializing Temperature Sensor", e)
 
         if "VEML" in senlist:
             try:
-                self.veml: VEML7700 = VEML7700(self.tca[address])
+                self.veml = VEML7700(self.tca[address])
                 self.sensors["VEML"] = True
             except Exception as e:
                 self.logger.error("Error Initializing Light Sensor", e)
 
         if "DRV" in senlist:
             try:
-                self.drv: DRV2605 = DRV2605(self.tca[address])
+                self.drv = DRV2605(self.tca[address])
                 self.sensors["DRV"] = True
             except Exception as e:
                 self.logger.error("Error Initializing Motor Driver", e)
@@ -328,14 +329,14 @@ class AllFaces:
             if face:
                 try:
                     temp: Union[float, None] = (
-                        face.mcp.temperature if face.sensors.get("MCP") else None
+                        face.mcp.temperature if face.sensors.get("MCP") else None  # type: ignore
                     )
                     light: Union[float, None] = (
-                        face.veml.lux if face.sensors.get("VEML") else None
+                        face.veml.lux if face.sensors.get("VEML") else None  # type: ignore
                     )
-                    results.append([temp, light])
+                    results.append([temp, light])  # type: ignore
                 except Exception:
-                    results.append([None, None])
+                    results.append([None, None])  # type: ignore
         return results
 
 
