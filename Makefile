@@ -1,4 +1,4 @@
-PYSQUARED_VERSION ?= v2.0.0-alpha-25w20
+PYSQUARED_VERSION ?= v2.0.0-alpha-25w26-2
 PYSQUARED ?= git+https://github.com/proveskit/pysquared@$(PYSQUARED_VERSION)
 
 .PHONY: all
@@ -14,16 +14,19 @@ help: ## Display this help.
 	@echo "Creating virtual environment..."
 	@$(MAKE) uv
 	@$(UV) venv
-	@$(UV) pip install --requirement pyproject.toml
+	@$(UV) sync
 
 .PHONY: download-libraries
-download-libraries: uv .venv ## Download the required libraries
-	@echo "Downloading libraries..."
-	@$(UV) pip install --requirement lib/requirements.txt --target lib --no-deps --upgrade --quiet
-	@$(UV) pip --no-cache install $(PYSQUARED) --target lib --no-deps --upgrade --quiet
+download-libraries: download-libraries-flight-software download-libraries-ground-station
 
-	@rm -rf lib/*.dist-info
-	@rm -rf lib/.lock
+.PHONY: download-libraries-%
+download-libraries-%: uv .venv ## Download the required libraries
+	@echo "Downloading libraries for $*..."
+	@$(UV) pip install --requirement src/$*/lib/requirements.txt --target src/$*/lib --no-deps --upgrade --quiet
+	@$(UV) pip --no-cache install $(PYSQUARED) --target src/$*/lib --no-deps --upgrade --quiet
+
+	@rm -rf src/$*/lib/*.dist-info
+	@rm -rf src/$*/lib/.lock
 
 .PHONY: pre-commit-install
 pre-commit-install: uv
@@ -38,17 +41,20 @@ sync-time: uv ## Syncs the time from your computer to the PROVES Kit board
 fmt: pre-commit-install ## Lint and format files
 	$(UVX) pre-commit run --all-files
 
+typecheck: .venv download-libraries ## Run type check
+	@$(UV) run -m pyright .
+
 BOARD_MOUNT_POINT ?= ""
 VERSION ?= $(shell git tag --points-at HEAD --sort=-creatordate < /dev/null | head -n 1)
 
 .PHONY: install
-install: build ## Install the project onto a connected PROVES Kit use `make install BOARD_MOUNT_POINT=/my_board_destination/` to specify the mount point
+install-%: build-% ## Install the project onto a connected PROVES Kit use `make install-flight-software BOARD_MOUNT_POINT=/my_board_destination/` to specify the mount point
 ifeq ($(OS),Windows_NT)
 	rm -rf $(BOARD_MOUNT_POINT)
-	cp -r artifacts/proves/* $(BOARD_MOUNT_POINT)
+	cp -r artifacts/proves/$*/* $(BOARD_MOUNT_POINT)
 else
 	@rm $(BOARD_MOUNT_POINT)/code.py > /dev/null 2>&1 || true
-	$(call rsync_to_dest,artifacts/proves,$(BOARD_MOUNT_POINT))
+	$(call rsync_to_dest,artifacts/proves/$*,$(BOARD_MOUNT_POINT))
 endif
 
 # install-firmware
@@ -63,15 +69,18 @@ clean: ## Remove all gitignored files such as downloaded libraries and artifacts
 ##@ Build
 
 .PHONY: build
-build: download-libraries mpy-cross ## Build the project, store the result in the artifacts directory
-	@echo "Creating artifacts/proves"
-	@mkdir -p artifacts/proves
-	@echo "__version__ = '$(VERSION)'" > artifacts/proves/version.py
-	$(call compile_mpy)
-	$(call rsync_to_dest,.,artifacts/proves/)
-	@$(UV) run python -c "import os; [os.remove(os.path.join(root, file)) for root, _, files in os.walk('artifacts/proves/lib') for file in files if file.endswith('.py')]"
-	@echo "Creating artifacts/proves.zip"
-	@zip -r artifacts/proves.zip artifacts/proves > /dev/null
+build: build-flight-software build-ground-station ## Build all projects
+
+.PHONY: build-*
+build-%: download-libraries-% mpy-cross ## Build the project, store the result in the artifacts directory
+	@echo "Creating artifacts/proves/$*"
+	@mkdir -p artifacts/proves/$*
+	@echo "__version__ = '$(VERSION)'" > artifacts/proves/$*/version.py
+	$(call compile_mpy,$*)
+	$(call rsync_to_dest,src/$*,artifacts/proves/$*/)
+	@$(UV) run python -c "import os; [os.remove(os.path.join(root, file)) for root, _, files in os.walk('artifacts/proves/$*/lib') for file in files if file.endswith('.py')]"
+	@echo "Creating artifacts/proves/$*.zip"
+	@zip -r artifacts/proves/$*.zip artifacts/proves/$* > /dev/null
 
 define rsync_to_dest
 	@if [ -z "$(1)" ]; then \
@@ -84,7 +93,7 @@ define rsync_to_dest
 		exit 1; \
 	fi
 
-	@rsync -avh $(1)/config.json artifacts/proves/version.py $(1)/*.py $(1)/lib --exclude=".*" --exclude='requirements.txt' --exclude='__pycache__' $(2) --delete --times --checksum
+	@rsync -avh ./config.json $(2)/version.py $(1)/*.py $(1)/lib --exclude=".*" --exclude='requirements.txt' --exclude='__pycache__' $(2) --delete --times --checksum
 endef
 
 ##@ Build Tools
@@ -93,7 +102,7 @@ $(TOOLS_DIR):
 	mkdir -p $(TOOLS_DIR)
 
 ### Tool Versions
-UV_VERSION ?= 0.5.24
+UV_VERSION ?= 0.7.13
 MPY_CROSS_VERSION ?= 9.0.5
 
 UV_DIR ?= $(TOOLS_DIR)/uv-$(UV_VERSION)
@@ -133,5 +142,5 @@ endif
 endif
 
 define compile_mpy
-	@$(UV) run python -c "import os, subprocess; [subprocess.run(['$(MPY_CROSS)', os.path.join(root, file)]) for root, _, files in os.walk('lib') for file in files if file.endswith('.py')]" || exit 1
+	@$(UV) run python -c "import os, subprocess; [subprocess.run(['$(MPY_CROSS)', os.path.join(root, file)]) for root, _, files in os.walk('src/$(1)/lib') for file in files if file.endswith('.py')]" || exit 1
 endef
