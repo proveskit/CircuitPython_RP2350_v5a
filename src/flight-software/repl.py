@@ -25,8 +25,6 @@ except Exception:
 
 import os
 
-import lib.pysquared.functions as functions
-import lib.pysquared.nvm.register as register
 from lib.adafruit_drv2605 import DRV2605  ### This is Hacky V5a Devel Stuff###
 from lib.adafruit_mcp230xx.mcp23017 import (
     MCP23017,  ### This is Hacky V5a Devel Stuff###
@@ -36,6 +34,7 @@ from lib.adafruit_tca9548a import TCA9548A  ### This is Hacky V5a Devel Stuff###
 from lib.adafruit_veml7700 import VEML7700  ### This is Hacky V5a Devel Stuff###
 
 # from lib.pysquared.Big_Data import AllFaces  ### This is Hacky V5a Devel Stuff###
+from lib.pysquared.beacon import Beacon
 from lib.pysquared.cdh import CommandDataHandler
 from lib.pysquared.config.config import Config
 from lib.pysquared.hardware.busio import _spi_init, initialize_i2c_bus
@@ -44,11 +43,10 @@ from lib.pysquared.hardware.imu.manager.lsm6dsox import LSM6DSOXManager
 from lib.pysquared.hardware.magnetometer.manager.lis2mdl import LIS2MDLManager
 from lib.pysquared.hardware.radio.manager.rfm9x import RFM9xManager
 from lib.pysquared.hardware.radio.manager.sx1280 import SX1280Manager
+from lib.pysquared.hardware.radio.packetizer.packet_manager import PacketManager
 from lib.pysquared.logger import Logger
 from lib.pysquared.nvm.counter import Counter
-from lib.pysquared.nvm.flag import Flag
 from lib.pysquared.rtc.manager.microcontroller import MicrocontrollerManager
-from lib.pysquared.satellite import Satellite
 from lib.pysquared.sleep_helper import SleepHelper
 from lib.pysquared.watchdog import Watchdog
 from version import __version__
@@ -56,7 +54,7 @@ from version import __version__
 rtc = MicrocontrollerManager()
 
 logger: Logger = Logger(
-    error_counter=Counter(index=register.ERRORCNT),
+    error_counter=Counter(0),
     colorized=False,
 )
 
@@ -89,11 +87,16 @@ spi1 = _spi_init(
     board.SPI1_MISO,
 )
 
-i2c0 = initialize_i2c_bus(
+sband_radio = SX1280Manager(
     logger,
-    board.SCL0,
-    board.SDA0,
-    100000,
+    config.radio,
+    spi1,
+    initialize_pin(logger, board.SPI1_CS0, digitalio.Direction.OUTPUT, True),
+    initialize_pin(logger, board.RF2_RST, digitalio.Direction.OUTPUT, True),
+    initialize_pin(logger, board.RF2_IO0, digitalio.Direction.OUTPUT, True),
+    2.4,
+    initialize_pin(logger, board.RF2_TX_EN, digitalio.Direction.OUTPUT, False),
+    initialize_pin(logger, board.RF2_RX_EN, digitalio.Direction.OUTPUT, False),
 )
 
 i2c1 = initialize_i2c_bus(
@@ -103,14 +106,11 @@ i2c1 = initialize_i2c_bus(
     100000,
 )
 
-c = Satellite(logger, config)
+sleep_helper = SleepHelper(logger, config, watchdog)
 
-sleep_helper = SleepHelper(c, logger, watchdog, config)
-
-radio = RFM9xManager(
+uhf_radio = RFM9xManager(
     logger,
     config.radio,
-    Flag(index=register.FLAG, bit_index=7),
     spi0,
     initialize_pin(logger, board.SPI0_CS0, digitalio.Direction.OUTPUT, True),
     initialize_pin(logger, board.RF1_RST, digitalio.Direction.OUTPUT, True),
@@ -120,41 +120,26 @@ magnetometer = LIS2MDLManager(logger, i2c1)
 
 imu = LSM6DSOXManager(logger, i2c1, 0x6B)
 
-cdh = CommandDataHandler(config, logger, radio)
-
-f = functions.functions(
-    c,
+uhf_packet_manager = PacketManager(
     logger,
-    config,
-    sleep_helper,
-    radio,
-    magnetometer,
+    uhf_radio,
+    config.radio.license,
+    0.2,
+)
+
+cdh = CommandDataHandler(logger, config, uhf_packet_manager)
+
+beacon = Beacon(
+    logger,
+    config.cubesat_name,
+    uhf_packet_manager,
+    time.monotonic(),
     imu,
-    watchdog,
-    cdh,
+    magnetometer,
+    uhf_radio,
+    sband_radio,
 )
 
-### This is Hacky V5a Devel Stuff###
-
-## Initialize the Second Radio ##
-
-use_fsk_flag = Flag(index=register.FLAG, bit_index=7)
-
-radio2 = SX1280Manager(
-    logger,
-    config.radio,
-    use_fsk_flag,
-    spi1,
-    initialize_pin(logger, board.SPI1_CS0, digitalio.Direction.OUTPUT, True),
-    initialize_pin(logger, board.RF2_RST, digitalio.Direction.OUTPUT, True),
-    initialize_pin(logger, board.RF2_IO0, digitalio.Direction.OUTPUT, True),
-    2.4,
-    initialize_pin(logger, board.RF2_TX_EN, digitalio.Direction.OUTPUT, True),
-    initialize_pin(logger, board.RF2_RX_EN, digitalio.Direction.OUTPUT, True),
-)
-
-radio2.send("Hello World")
-print("Radio2 sent Hello World")
 
 ## Initializing the Burn Wire ##
 ENABLE_BURN_A = initialize_pin(
@@ -275,8 +260,6 @@ class Face:
         self.position: str = pos
         self.logger: Logger = logger
 
-        # Use tuple instead of list for immutable data
-        self.senlist: tuple = ()
         # Define sensors based on position using a dictionary lookup instead of if-elif chain
         sensor_map: dict[str, tuple[str, ...]] = {
             "x+": ("MCP", "VEML", "DRV"),
@@ -285,34 +268,36 @@ class Face:
             "y-": ("MCP", "VEML"),
             "z-": ("MCP", "VEML", "DRV"),
         }
+
+        # Use tuple instead of list for immutable data
         self.senlist: tuple[str, ...] = sensor_map.get(pos, ())
 
         # Initialize sensor states dict only with needed sensors
         self.sensors: dict[str, bool] = {sensor: False for sensor in self.senlist}
 
         # Initialize sensor objects as None
-        self.mcp = None
-        self.veml = None
-        self.drv = None
+        self.mcp: MCP9808 | None = None
+        self.veml: VEML7700 | None = None
+        self.drv: DRV2605 | None = None
 
     def sensor_init(self, senlist, address) -> None:
         if "MCP" in senlist:
             try:
-                self.mcp: MCP9808 = MCP9808(self.tca[address], address=27)
+                self.mcp = MCP9808(self.tca[address], address=27)
                 self.sensors["MCP"] = True
             except Exception as e:
                 self.logger.error("Error Initializing Temperature Sensor", e)
 
         if "VEML" in senlist:
             try:
-                self.veml: VEML7700 = VEML7700(self.tca[address])
+                self.veml = VEML7700(self.tca[address])
                 self.sensors["VEML"] = True
             except Exception as e:
                 self.logger.error("Error Initializing Light Sensor", e)
 
         if "DRV" in senlist:
             try:
-                self.drv: DRV2605 = DRV2605(self.tca[address])
+                self.drv = DRV2605(self.tca[address])
                 self.sensors["DRV"] = True
             except Exception as e:
                 self.logger.error("Error Initializing Motor Driver", e)
@@ -343,14 +328,14 @@ class AllFaces:
             if face:
                 try:
                     temp: Union[float, None] = (
-                        face.mcp.temperature if face.sensors.get("MCP") else None
+                        face.mcp.temperature if face.sensors.get("MCP") else None  # type: ignore
                     )
                     light: Union[float, None] = (
-                        face.veml.lux if face.sensors.get("VEML") else None
+                        face.veml.lux if face.sensors.get("VEML") else None  # type: ignore
                     )
-                    results.append([temp, light])
+                    results.append([temp, light])  # type: ignore
                 except Exception:
-                    results.append([None, None])
+                    results.append([None, None])  # type: ignore
         return results
 
 
