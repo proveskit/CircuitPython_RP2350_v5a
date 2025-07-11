@@ -128,7 +128,7 @@ arduino-cli: $(ARDUINO_CLI) ## Download arduino-cli
 $(ARDUINO_CLI): $(TOOLS_DIR)
 	@test -s $(ARDUINO_CLI) || curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$(TOOLS_DIR) sh > /dev/null
 
-CIRCUIT_PYTHON ?= $(TOOLS_DIR)/adafruit-circuitpython-proveskit_rp2040_v5a-en_US-$(CIRCUIT_PYTHON_VERSION).uf2
+CIRCUIT_PYTHON ?= $(TOOLS_DIR)/adafruit-circuitpython-proveskit_rp2350_v5a-en_US-$(CIRCUIT_PYTHON_VERSION).uf2
 .PHONY: circuit-python
 circuit-python: $(CIRCUIT_PYTHON) ## Download Circuit Python firmware
 $(CIRCUIT_PYTHON): $(TOOLS_DIR)
