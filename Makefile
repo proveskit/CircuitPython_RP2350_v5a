@@ -1,5 +1,8 @@
 PYSQUARED_VERSION ?= v2.0.0-alpha-25w26-2
 PYSQUARED ?= git+https://github.com/proveskit/pysquared@$(PYSQUARED_VERSION)
+BOARD_MOUNT_POINT ?= ""
+BOARD_TTY_PORT ?= ""
+VERSION ?= $(shell git tag --points-at HEAD --sort=-creatordate < /dev/null | head -n 1)
 
 .PHONY: all
 all: .venv download-libraries pre-commit-install help
@@ -44,9 +47,6 @@ fmt: pre-commit-install ## Lint and format files
 typecheck: .venv download-libraries ## Run type check
 	@$(UV) run -m pyright .
 
-BOARD_MOUNT_POINT ?= ""
-VERSION ?= $(shell git tag --points-at HEAD --sort=-creatordate < /dev/null | head -n 1)
-
 .PHONY: install
 install-%: build-% ## Install the project onto a connected PROVES Kit use `make install-flight-software BOARD_MOUNT_POINT=/my_board_destination/` to specify the mount point
 ifeq ($(OS),Windows_NT)
@@ -57,10 +57,18 @@ else
 	$(call rsync_to_dest,artifacts/proves/$*,$(BOARD_MOUNT_POINT))
 endif
 
-# install-firmware
-.PHONY: install-firmware
-install-firmware: uv ## Install the board firmware onto a connected PROVES Kit
-	@$(UVX) --from git+https://github.com/proveskit/install-firmware@1.0.1 install-firmware v5a
+# install-circuit-python
+.PHONY: install-circuit-python
+install-circuit-python: arduino-cli circuit-python ## Install the Circuit Python onto a connected PROVES Kit
+	@$(ARDUINO_CLI) config init || true
+	@$(ARDUINO_CLI) config add board_manager.additional_urls https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+	@$(ARDUINO_CLI) core install rp2040:rp2040@4.1.1
+	@$(ARDUINO_CLI) upload -v -b 115200 --fqbn rp2040:rp2040:rpipico -p $(BOARD_TTY_PORT) -i $(CIRCUIT_PYTHON)
+
+.PHONY: list-tty
+list-tty: arduino-cli ## List available TTY ports
+	@echo "TTY ports:"
+	@$(ARDUINO_CLI) board list | grep "USB" | awk '{print $$1}'
 
 .PHONY: clean
 clean: ## Remove all gitignored files such as downloaded libraries and artifacts
@@ -99,11 +107,12 @@ endef
 ##@ Build Tools
 TOOLS_DIR ?= tools
 $(TOOLS_DIR):
-	mkdir -p $(TOOLS_DIR)
+	@mkdir -p $(TOOLS_DIR)
 
 ### Tool Versions
 UV_VERSION ?= 0.7.13
 MPY_CROSS_VERSION ?= 9.0.5
+CIRCUIT_PYTHON_VERSION ?= 9.2.8
 
 UV_DIR ?= $(TOOLS_DIR)/uv-$(UV_VERSION)
 UV ?= $(UV_DIR)/uv
@@ -112,6 +121,18 @@ UVX ?= $(UV_DIR)/uvx
 uv: $(UV) ## Download uv
 $(UV): $(TOOLS_DIR)
 	@test -s $(UV) || { mkdir -p $(UV_DIR); curl -LsSf https://astral.sh/uv/$(UV_VERSION)/install.sh | UV_INSTALL_DIR=$(UV_DIR) sh > /dev/null; }
+
+ARDUINO_CLI ?= $(TOOLS_DIR)/arduino-cli
+.PHONY: arduino-cli
+arduino-cli: $(ARDUINO_CLI) ## Download arduino-cli
+$(ARDUINO_CLI): $(TOOLS_DIR)
+	@test -s $(ARDUINO_CLI) || curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=$(TOOLS_DIR) sh > /dev/null
+
+CIRCUIT_PYTHON ?= $(TOOLS_DIR)/adafruit-circuitpython-proveskit_rp2040_v5a-en_US-$(CIRCUIT_PYTHON_VERSION).uf2
+.PHONY: circuit-python
+circuit-python: $(CIRCUIT_PYTHON) ## Download Circuit Python firmware
+$(CIRCUIT_PYTHON): $(TOOLS_DIR)
+	@test -s $(CIRCUIT_PYTHON) || curl -o $(CIRCUIT_PYTHON) -fsSL https://raw.githubusercontent.com/proveskit/flight_controller_board/main/Firmware/FC_FIRM_v5a_V1.uf2
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
