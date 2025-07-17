@@ -120,6 +120,7 @@ try:
         logger,
         uhf_radio,
         config.radio.license,
+        Counter(Register.message_count),
         0.2,
     )
 
