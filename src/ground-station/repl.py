@@ -43,6 +43,7 @@ uhf_packet_manager = PacketManager(
     logger,
     uhf_radio,
     config.radio.license,
+    Counter(2),
     0.2,
 )
 
@@ -68,6 +69,7 @@ sband_packet_manager = PacketManager(
     logger,
     sband_radio,
     config.radio.license,
+    Counter(2),
     0.2,
 )
 
